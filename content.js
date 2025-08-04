@@ -1,4 +1,7 @@
+let lastProcessedJobId = null;
+
 // Function to extract job ID from the URL (checks query params and path)
+
 function getJobIdFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get("currentJobId");
@@ -209,17 +212,32 @@ function injectApplicantCount(count) {
 
 // Function to process and fetch the applicant count
 async function processJobPage(jobId) {
+  // Add a check to prevent redundant processing if the ID hasn't actually changed
+  if (jobId === lastProcessedJobId) {
+    // console.log("Job ID is the same, skipping reprocessing."); // Uncomment for debugging
+    return;
+  }
+
   if (jobId) {
-    console.log("Detected LinkedIn Job ID:", jobId);
+    lastProcessedJobId = jobId; // Update the last processed ID
+
+    console.log("Processing LinkedIn Job ID:", jobId);
+    cleanupPreviousCounts(); // Ensure old numbers are gone before new fetch
+
     const applicantCount = await fetchApplicantCount(jobId);
     if (applicantCount !== null) {
       console.log("Applicant Count:", applicantCount);
-      injectApplicantCount(applicantCount); // CALL THE NEW FUNCTION HERE
+      injectApplicantCount(applicantCount);
     } else {
       console.log("Could not retrieve applicant count for Job ID:", jobId);
     }
   } else {
-    console.warn("No Job ID found on this LinkedIn Jobs page.");
+    // If no jobId is found, clear any displayed numbers (e.g., navigating away from a job details view)
+    cleanupPreviousCounts();
+    lastProcessedJobId = null; // Reset
+    console.warn(
+      "No Job ID found on this LinkedIn Jobs page. Clearing counts."
+    );
   }
 }
 
@@ -229,56 +247,49 @@ let observer; // MutationObserver instance
 function setupMutationObserver() {
   if (observer) observer.disconnect(); // Disconnect existing observer if any
 
-  let targetNode = document.querySelector(".jobs-search__job-details--wrapper");
-  let observerTargetName;
+  // The primary target for the observer will be a broader container
+  // that encompasses both the job list and the details panel,
+  // as the URL may change without a full page reload but content within this
+  // container will mutate.
+  // Common LinkedIn containers: #main, .scaffold-layout__main
+  // Let's try .scaffold-layout__main first, as it's typically stable for content.
+  const mainContentContainer = document.querySelector(".scaffold-layout__main");
+  let targetNode = mainContentContainer || document.body; // Fallback to body
 
-  if (!targetNode) {
-    targetNode = document.body; // Fallback to body if specific wrapper not found
-    observerTargetName = "document.body (fallback)";
-  } else {
-    observerTargetName = ".jobs-search__job-details--wrapper";
-  }
+  let observerTargetName = mainContentContainer
+    ? ".scaffold-layout__main"
+    : "document.body (fallback)";
 
   const config = { childList: true, subtree: true, attributes: true };
 
   const callback = (mutationsList, observer) => {
+    // On any mutation, re-evaluate the current job ID from both URL and DOM.
+    // This catches both URL changes (via `getJobIdFromUrl`) and dynamic DOM loads.
     let currentJobId = getJobIdFromUrl();
     if (!currentJobId) {
       currentJobId = findActiveJobIdInDom();
     }
 
-    if (currentJobId) {
-      // Process only if the job ID has changed
-      if (currentJobId !== window.__lastProcessedJobId) {
-        console.log(
-          "Job ID detected (via Observer or URL change):",
-          currentJobId
-        );
-        processJobPage(currentJobId);
-        window.__lastProcessedJobId = currentJobId;
-      }
-    }
+    // Now, call processJobPage. It contains its own logic to prevent redundant API calls
+    // if the Job ID hasn't actually changed, or if it should cleanup.
+    processJobPage(currentJobId);
   };
 
   observer = new MutationObserver(callback);
   observer.observe(targetNode, config);
-  console.log(`MutationObserver set up on ${observerTargetName}.`);
+  console.log(
+    `MutationObserver set up on ${observerTargetName} for comprehensive job page changes.`
+  );
 }
 
 // Initial script execution logic
 (function () {
   console.log("LinkedIn Applicant Count Extension content script loaded!");
 
-  // Attempt to get job ID on initial page load
+  // Perform initial processing
   let initialJobId = getJobIdFromUrl();
-  if (initialJobId) {
-    console.log("Initial Job ID found in URL:", initialJobId);
-    processJobPage(initialJobId);
-    window.__lastProcessedJobId = initialJobId;
-  } else {
-    console.log("No initial Job ID in URL. Will rely on MutationObserver.");
-  }
+  processJobPage(initialJobId); // Let processJobPage handle initial logic
 
-  // Set up the observer for dynamic content updates
+  // Set up the observer for dynamic content updates and future navigations
   setupMutationObserver();
 })();
