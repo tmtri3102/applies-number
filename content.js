@@ -183,7 +183,7 @@ function injectApplicantCount(count) {
     const countDisplay = document.createElement("span");
     countDisplay.className = "linkedin-exact-applicant-count"; // Use this for newly created spans
     countDisplay.style.fontWeight = "bold";
-    countDisplay.style.color = "#0073B1"; // LinkedIn blue
+    countDisplay.style.color = "#1B9E76"; // LinkedIn blue
     countDisplay.style.marginLeft = "5px";
     countDisplay.textContent = ` (${count} applicants)`; // Show in parentheses for appending
     insightElement.appendChild(countDisplay);
@@ -197,7 +197,7 @@ function injectApplicantCount(count) {
       const countDisplay = document.createElement("span");
       countDisplay.className = "linkedin-exact-applicant-count"; // Use this for newly created spans
       countDisplay.style.fontWeight = "bold";
-      countDisplay.style.color = "#0073B1";
+      countDisplay.style.color = "#1B9E76";
       countDisplay.style.marginLeft = "10px";
       countDisplay.textContent = `(${count} applicants)`;
       jobTitleElement.parentElement.appendChild(countDisplay);
