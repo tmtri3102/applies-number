@@ -5,7 +5,7 @@
 This Chrome Extension solves that problem.
 The **LinkedIn Exact Applicant Count** reveals the true number of applicants for any job directly on LinkedIn.
 
-(Currently under review my Chrome team, will paste my link to extension here)
+https://chromewebstore.google.com/detail/lfcajhbbclnfkegcjdaejmmndhpknpfb?utm_source=item-share-cb
 
 ---
 
